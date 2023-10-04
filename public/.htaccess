@@ -1,0 +1,7 @@
+<IfModule mod.rewrite.c>
+
+ReWriteEngine On
+
+rewriteRule ^ index.php [QSA,L]
+
+</IfModule>

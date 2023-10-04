@@ -1,0 +1,1 @@
+a:2:{i:0;a:4:{s:4:"name";s:1:"s";s:5:"email";s:1:"s";s:8:"password";i:1;s:7:"balance";d:500;}i:1;a:4:{s:4:"name";s:1:"r";s:5:"email";s:1:"r";s:8:"password";i:2;s:7:"balance";d:200;}}

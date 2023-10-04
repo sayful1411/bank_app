@@ -1,0 +1,14 @@
+{
+    "name": "sayful1411/bank_app",
+    "description": "simple bank application framework",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+    "files": [
+        "helpers.php"
+    ]
+    }
+}
