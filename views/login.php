@@ -26,7 +26,7 @@
         <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
             <div class="px-6 py-12 bg-white shadow sm:rounded-lg sm:px-12">
                 <?php
-                session_start();
+                // session_start();
                 if (isset($_SESSION['success_message'])) {
                     echo '<div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert">';
                     echo '<span class="font-medium">Success Alert: </span>' . $_SESSION['success_message'];
@@ -39,8 +39,12 @@
                     echo '</div>';
                     unset($_SESSION['error_message']);
                 }
+                if(isset($_SESSION['customer_id'])){
+                    return redirect('dashboard');
+                    exit;
+                }
                 ?>
-                <form class="space-y-6" action="#" method="POST">
+                <form class="space-y-6" action="/customer_login" method="POST">
                     <div> 
                         <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email address</label>
                         <div class="mt-2"> 

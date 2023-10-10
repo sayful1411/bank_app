@@ -38,6 +38,19 @@ class CustomerDashboardController extends CustomerController
         return 'customer-transaction';
     }
 
+    /**
+     * pages
+     */
+
+    public static function dashboard(){
+        $balance = static::getBalance();
+        $data = static::getTransactionData();
+        print_r($data);
+
+        return view('customer/dashboard', ['balance'=>$balance]);
+        
+    }
+
     public function run()
     {
         while(true){

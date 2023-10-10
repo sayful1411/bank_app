@@ -30,14 +30,13 @@ class Router
         $page = trim($_SERVER['REQUEST_URI'], '/');
 
         foreach (self::$list as $item) {
-//            print_r($item);
             if ($item['page'] === $page && $item['method'] === $method) {
                 $controllerName = $item['controller'];
                 $controllerMethod = $item['controllerMethod'];
 
                 if ($controllerName && $controllerMethod) {
-                    $controllerInstance = new $controllerName;
-                    $controllerInstance->$controllerMethod();
+                    $controllerInstance =$controllerName;
+                    $controllerInstance::$controllerMethod();
                     return;
                 }
 

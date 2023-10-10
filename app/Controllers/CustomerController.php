@@ -3,9 +3,10 @@
 namespace App\Controllers;
 
 use App\Models\Storage;
-use App\Controllers\CustomerDashboardController;
+use App\Models\DBStorage;
 use App\Controllers\AdminController;
 use App\Controllers\AdminDashboardController;
+use App\Controllers\CustomerDashboardController;
 
 class CustomerController{
     protected array $customerInfo = [];
@@ -35,6 +36,68 @@ class CustomerController{
         return view('login');
     }
 
+    public static function registerPage(){
+        return view('register');
+    }
+
+    public static function logoutPage(){
+        return view('logout');
+    }
+
+    public static function getBalance(){
+        $dbCall = new DBStorage();
+        return $dbCall->balance();
+    }
+
+    public static function getTransactionData(){
+        $dbCall = new DBStorage();
+        return $dbCall->transactionData();
+    }
+
+    public static function customerRegister(){
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            die("Method not accepted. Accepted method is POST");
+            exit;
+        }
+        
+        if (isset($_POST['name']) && isset($_POST['email']) && isset($_POST['password'])) {
+            $name = htmlspecialchars($_POST['name']);
+            $email = htmlspecialchars($_POST['email']);
+            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        
+            require_once __DIR__ . "/../Models/DBStorage.php";
+            $dbCall = new DBStorage();
+            $dbCall->store($name,$email,$password);
+        
+        }else{
+            die("Name, Email & Password is required");
+            exit;
+        }
+    }
+
+    public static function customerLogin(){
+
+        if($_SERVER['REQUEST_METHOD'] === 'POST'){
+            if(isset($_POST['email']) && isset($_POST['password'])){
+                $email = htmlspecialchars($_POST['email']);
+                $password = $_POST['password'];
+
+                try{
+                    require_once __DIR__ . "/../Models/DBStorage.php";
+                    $dbCall = new DBStorage();
+                    $dbCall->login($email,$password);
+
+                }catch(\PDOException $e){
+                    die("Databse error: {$e->getMessage()}");
+                }
+            }
+        }
+    }
+
+    public static function test(){
+        return view('test');
+    }
 
     public function register(string $name, string $email, int $password)
     {
