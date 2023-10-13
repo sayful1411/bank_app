@@ -3,12 +3,16 @@
 namespace App\Controllers;
 
 use App\Models\Storage;
-use App\Models\DBStorage;
+use App\Models\CustomerModel;
 use App\Controllers\AdminController;
 use App\Controllers\AdminDashboardController;
 use App\Controllers\CustomerDashboardController;
 
 class CustomerController{
+    /**
+     * CLI Part
+     */
+
     protected array $customerInfo = [];
     protected Storage $storage;
     protected float $balance;
@@ -26,77 +30,6 @@ class CustomerController{
     public static function getModelName(): string
     {
         return 'customer';
-    }
-
-    /**
-     * Pages
-     */
-
-    public static function loginPage(){
-        return view('login');
-    }
-
-    public static function registerPage(){
-        return view('register');
-    }
-
-    public static function logoutPage(){
-        return view('logout');
-    }
-
-    public static function getBalance(){
-        $dbCall = new DBStorage();
-        return $dbCall->balance();
-    }
-
-    public static function getTransactionData(){
-        $dbCall = new DBStorage();
-        return $dbCall->transactionData();
-    }
-
-    public static function customerRegister(){
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            die("Method not accepted. Accepted method is POST");
-            exit;
-        }
-        
-        if (isset($_POST['name']) && isset($_POST['email']) && isset($_POST['password'])) {
-            $name = htmlspecialchars($_POST['name']);
-            $email = htmlspecialchars($_POST['email']);
-            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-        
-            require_once __DIR__ . "/../Models/DBStorage.php";
-            $dbCall = new DBStorage();
-            $dbCall->store($name,$email,$password);
-        
-        }else{
-            die("Name, Email & Password is required");
-            exit;
-        }
-    }
-
-    public static function customerLogin(){
-
-        if($_SERVER['REQUEST_METHOD'] === 'POST'){
-            if(isset($_POST['email']) && isset($_POST['password'])){
-                $email = htmlspecialchars($_POST['email']);
-                $password = $_POST['password'];
-
-                try{
-                    require_once __DIR__ . "/../Models/DBStorage.php";
-                    $dbCall = new DBStorage();
-                    $dbCall->login($email,$password);
-
-                }catch(\PDOException $e){
-                    die("Databse error: {$e->getMessage()}");
-                }
-            }
-        }
-    }
-
-    public static function test(){
-        return view('test');
     }
 
     public function register(string $name, string $email, int $password)
@@ -169,6 +102,92 @@ class CustomerController{
     protected function saveCustomer(): void
     {
         $this->storage->save(CustomerController::getModelName(), $this->customerInfo);
+    }
+
+    /**
+     * Web Part
+     */
+
+    //  login page
+     public static function loginPage(){
+        return view('login');
+    }
+
+    //  registration page
+    public static function registerPage(){
+        return view('register');
+    }
+
+    //  logout page
+    public static function logoutPage(){
+        return view('logout');
+    }
+
+    // static property and method to store the CustomerModel instance
+    private static $dbCallInstance;
+
+    private static function getDBCallInstance(){
+        if (!isset(self::$dbCallInstance)) {
+            self::$dbCallInstance = new CustomerModel();
+        }
+        return self::$dbCallInstance;
+    }
+
+    //  get balance
+    public static function getBalance(){
+        $dbCall = self::getDBCallInstance();
+        return $dbCall->balance();
+    }
+
+    // get transaction data
+    public static function getTransactionData(){
+        $dbCall = self::getDBCallInstance();
+        return $dbCall->transactionData();
+    }
+
+    //  registar customer
+    public static function customerRegister(){
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            die("Method not accepted. Accepted method is POST");
+            exit;
+        }
+        
+        if (isset($_POST['name']) && isset($_POST['email']) && isset($_POST['password'])) {
+            $name = htmlspecialchars($_POST['name']);
+            $email = htmlspecialchars($_POST['email']);
+            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        
+            $dbCall = new CustomerModel();
+            $dbCall->store($name,$email,$password);
+        
+        }else{
+            die("Name, Email & Password is required");
+            exit;
+        }
+    }
+
+    // login customer
+    public static function customerLogin(){
+
+        if($_SERVER['REQUEST_METHOD'] === 'POST'){
+            if(isset($_POST['email']) && isset($_POST['password'])){
+                $email = htmlspecialchars($_POST['email']);
+                $password = $_POST['password'];
+
+                try{
+                    $dbCall = new CustomerModel();
+                    $dbCall->login($email,$password);
+
+                }catch(\PDOException $e){
+                    die("Databse error: {$e->getMessage()}");
+                }
+            }
+        }
+    }
+
+    public static function test(){
+        return view('test');
     }
 
 }

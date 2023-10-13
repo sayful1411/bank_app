@@ -1,5 +1,4 @@
 <?php
-// session_start();
 
 if (!isset($_SESSION['customer_id'])) {
     redirect('login');
@@ -147,8 +146,17 @@ if (!isset($_SESSION['customer_id'])) {
                                             <tr>
                                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-800 sm:pl-0"> <?=  $row['customer_name'] ?> </td>
                                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 sm:pl-0"> <?=  $row['customer_email'] ?> </td>
+                                                <?php if($row['transaction_type'] === "Deposit"){?>
                                                 <td class="whitespace-nowrap px-2 py-4 text-sm font-medium text-emerald-600"> $<?= $row['amount'] ?>  </td>
-                                                <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-500"> <?= $row['created_at'] ?> </td>
+                                                <?php }else{ ?>
+                                                <td class="whitespace-nowrap px-2 py-4 text-sm font-medium text-rose-600"> $<?= $row['amount'] ?>  </td>
+                                                <?php }?>
+                                                <td class="whitespace-nowrap px-2 py-4 text-sm text-gray-500"> <?php $timestamp = strtotime($row['created_at']); $formattedDate = date('d M Y, h:i A', $timestamp); echo $formattedDate; ?> </td>
+                                            </tr>
+                                            <?php } ?>
+                                            <?php if(empty($data)){ ?>
+                                            <tr>
+                                                <td colspan="4" class="text-center whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-800 sm:pl-0"> NO Data Found </td>
                                             </tr>
                                             <?php } ?>
                                         </tbody>

@@ -2,16 +2,26 @@
 
 namespace App\Models;
 
-// use App\Controllers\CustomerController;
+use App\Traits\AvatarGeneratorTrait;
 use PDO;
 use PDOException;
 
-class DBStorage extends Model{
+class CustomerModel extends Model{
 
+    use AvatarGeneratorTrait;
+
+    // store customer data
     public function store($name,$email,$password){
         try{
+            
             // Check if the email already exists in the database
-            if ($this->customerEmailExists($email)) {
+            if($this->isAdminEmailRegistered($email)){
+                $_SESSION['error_message'] = 'The email is already registered as an admin';
+                return redirect('register');
+            }
+
+            // Check if customer and admin email is same
+            if($this->isCustomerEmailRegistered($email)){
                 $_SESSION['error_message'] = 'Email already exists';
                 return redirect('register');
             }
@@ -38,62 +48,65 @@ class DBStorage extends Model{
             return redirect('login');
         }catch (PDOException $e) {
             // Handle exceptions
-            return redirect('login?error=' . $e->getMessage());
+            return redirect('register?error=' . $e->getMessage());
         }
     }
 
-    public function customerEmailExists($email){
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM customers WHERE email = ?");
-        $stmt->execute([$email]);
-
-        return $stmt->fetchColumn() > 0;
+    // check if customer already exist
+    public function isCustomerEmailRegistered($email){
+        // Check if the email exists in the customers table
+        $customerEmail = $this->db->prepare("SELECT email FROM customers WHERE email = ?");
+        $customerEmail->execute([$email]);
+    
+        return !empty($customerEmail->fetch(PDO::FETCH_ASSOC));
+    }
+    
+    // check if admin already exist
+    public function isAdminEmailRegistered($email){
+        // Check if the email exists in the admins table
+        $adminEmail = $this->db->prepare("SELECT email FROM admins WHERE email = ?");
+        $adminEmail->execute([$email]);
+    
+        return !empty($adminEmail->fetch(PDO::FETCH_ASSOC));
     }
 
+    // customer login
     public function  login($email,$password){
-        $stmt = $this->db->prepare("SELECT * FROM customers WHERE email = ?");
-        $stmt->execute([$email]);
+        $customerStmt = $this->db->prepare("SELECT * FROM customers WHERE email = ?");
+        $customerStmt->execute([$email]);
 
-        $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+        $customer = $customerStmt->fetch(PDO::FETCH_ASSOC);
 
         if($customer && password_verify($password, $customer['password'])){
-            // session_start();
             $_SESSION['customer_id'] = $customer['id'];
             $_SESSION['customer_name'] = $customer['name'];
             $_SESSION['customer_email'] = $customer['email'];
 
-            // Get the customer's name from the session and generate Avatar name
-            $customerName = $_SESSION['customer_name'];
-            $avatarName = '';
-            $words = explode(' ', $customerName);
-            foreach ($words as $word) {
-                $avatarName .= strtoupper(substr($word, 0, 1));
-            }
-            $_SESSION['avatar_name'] = $avatarName;
+            // generate avatar
+            $name = $_SESSION['customer_name'];
+            $_SESSION['avatar_name'] = $this->generateAvatar($name);
 
             return redirect('dashboard');
             exit;
         }else{
-            // session_start();
             $_SESSION['error_message'] = 'Sorry, wrong credentials';
             return redirect('login');
             exit;
         }
     }
 
+    // deposit record
     public function deposit($amount){
-        // session_start();
         $customer_id = $_SESSION['customer_id'];
         
         try{
             // Create a deposit transaction record
-            $stmt = $this->db->prepare("INSERT INTO transactions (account_id, transaction_type, amount) VALUES (?, ?, ?)");
-            $stmt->execute([$customer_id, "Deposit", $amount]);
+            $depositTransactionStmt = $this->db->prepare("INSERT INTO transactions (account_id, transaction_type, amount) VALUES (?, ?, ?)");
+            $depositTransactionStmt->execute([$customer_id, "Deposit", $amount]);
 
             // Update account balance
-            $stmt = $this->db->prepare("UPDATE accounts SET balance = balance + :amount WHERE customer_id = :customer_id");
-            $stmt->bindParam(":customer_id", $customer_id);
-            $stmt->bindParam(":amount", $amount);
-            $stmt->execute();
+            $updateBalanceStmt = $this->db->prepare("UPDATE accounts SET balance = balance + ? WHERE customer_id = ?");
+            $updateBalanceStmt->execute([$customer_id, $amount]);
 
             $_SESSION['success_message'] = "Deposit successful.";
             return redirect('deposit');
@@ -102,49 +115,50 @@ class DBStorage extends Model{
         }
     }
 
+    // withdraw record
     public function withdraw($amount){
-        // session_start();
         $customer_id = $_SESSION['customer_id'];
         
-        $stmt = $this->db->prepare("SELECT balance FROM accounts WHERE customer_id = ?");
-        $stmt->execute([$customer_id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        // get balance data
+        $balanceStmt = $this->db->prepare("SELECT balance FROM accounts WHERE customer_id = ?");
+        $balanceStmt->execute([$customer_id]);
+        $row = $balanceStmt->fetch(PDO::FETCH_ASSOC);
 
         if($row && $row['balance'] >= $amount){
             try{
                 // Create a withdraw transaction record
-                $stmt = $this->db->prepare("INSERT INTO transactions (account_id, transaction_type, amount) VALUES (?, ?, ?)");
-                $stmt->execute([$customer_id, "Withdraw", $amount]);
+                $withdrawTransactionStmt = $this->db->prepare("INSERT INTO transactions (account_id, transaction_type, amount) VALUES (?, ?, ?)");
+                $withdrawTransactionStmt->execute([$customer_id, "Withdraw", $amount]);
     
                 // Update account balance
-                $stmt = $this->db->prepare("UPDATE accounts SET balance = balance - :amount WHERE customer_id = :customer_id");
-                $stmt->bindParam(":customer_id", $customer_id);
-                $stmt->bindParam(":amount", $amount);
-                $stmt->execute();
+                $updateBalanceStmt = $this->db->prepare("UPDATE accounts SET balance = balance - ? WHERE customer_id = ?");
+                $updateBalanceStmt->execute([$customer_id, $amount]);
     
                 $_SESSION['success_message'] = "Withdraw successful.";
                 return redirect('withdraw');
+
             }catch(\PDOException $e){
                 echo $e->getMessage();
             }
         }else{
-            // session_start();
             $_SESSION['error_message'] = "Insufficient balance";
             return redirect('withdraw');
         }
     }
 
+    // balance record
     public function balance(){
-        // session_start();
         $customer_id = $_SESSION['customer_id'];
 
-        $stmt = $this->db->prepare("SELECT balance FROM accounts WHERE customer_id = ?");
-        $stmt->execute([$customer_id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        // get balance
+        $balanceStmt = $this->db->prepare("SELECT balance FROM accounts WHERE customer_id = ?");
+        $balanceStmt->execute([$customer_id]);
+        $row = $balanceStmt->fetch(PDO::FETCH_ASSOC);
         $result = $row['balance'];
         return $result;
     }
 
+    // check if sender and receiver exist
     public function validateSenderReceiver($senderId, $receiverId) {
         // Check if the sender and receiver exist in the database
         $stmtSender = $this->db->prepare("SELECT COUNT(*) FROM customers WHERE id = ?");
@@ -157,7 +171,6 @@ class DBStorage extends Model{
     
         if (!$senderExists || !$receiverExists) {
             // return "Sender or receiver does not exist.";
-            // session_start();
             $_SESSION['error_message'] = "Sender or receiver does not exist";
             return redirect('transfer');
             exit;
@@ -166,7 +179,6 @@ class DBStorage extends Model{
         // Ensure sender and receiver are different customers
         if ($senderId === $receiverId) {
             // return "Sender and receiver cannot be the same customer.";
-            // session_start();
             $_SESSION['error_message'] = "Sender and receiver cannot be the same customer";
             return redirect('transfer');
             exit;
@@ -174,6 +186,7 @@ class DBStorage extends Model{
         
     } 
 
+    // get id, email, amount to transfer proccess
     public function transfer($customer_id, $email, $amount){
         $stmt = $this->db->prepare("SELECT * FROM customers WHERE email = ?");
         $stmt->execute([$email]);
@@ -182,10 +195,9 @@ class DBStorage extends Model{
 
         $this->validateSenderReceiver($customer_id, $receiver_id);
         $this->transferTransaction($customer_id, $receiver_id, $amount);
-
-        
     }
 
+    // transfer transactions
     public function transferTransaction($senderId, $receiverId, $amount){
         // Check if the sender has a sufficient balance
         $senderBalance = $this->balance(); // Implement a function to retrieve the sender's balance
@@ -218,7 +230,6 @@ class DBStorage extends Model{
             $debitTransactionStmt = $this->db->prepare("INSERT INTO transactions (account_id, transaction_type, amount) VALUES (?, ?, ?)");
             $debitTransactionStmt->execute([$senderId, "Withdraw", $amount]);
             
-
             $creditTransactionStmt = $this->db->prepare("INSERT INTO transactions (account_id, transaction_type, amount) VALUES (?, ?, ?)");
             $creditTransactionStmt->execute([$receiverId, "Deposit", $amount]);
             
@@ -235,14 +246,13 @@ class DBStorage extends Model{
         }
     }
 
+    // get transaction data
     public function transactionData(){
-        // session_start();
         $customer_id = $_SESSION['customer_id'];
 
         try {
-        
             // Prepare the SQL query with JOIN operations
-            $stmt = $this->db->prepare("
+            $transactionsData = $this->db->prepare("
             SELECT 
                 t.transaction_type, 
                 t.created_at,
@@ -260,10 +270,10 @@ class DBStorage extends Model{
         ");
 
         // Execute the query
-        $stmt->execute([$customer_id]);
+        $transactionsData->execute([$customer_id]);
 
         // Fetch the result as an associative array
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $transactionsData->fetchAll(PDO::FETCH_ASSOC);
 
         } catch (PDOException $e) {
             echo "Database Error: " . $e->getMessage();

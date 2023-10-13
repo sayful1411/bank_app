@@ -28,7 +28,8 @@ class Router
     {
         $method = $_SERVER['REQUEST_METHOD'];
         $page = trim($_SERVER['REQUEST_URI'], '/');
-
+        $page = explode("?",$page)[0];
+// echo $page; die();
         foreach (self::$list as $item) {
             if ($item['page'] === $page && $item['method'] === $method) {
                 $controllerName = $item['controller'];

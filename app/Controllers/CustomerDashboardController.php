@@ -8,6 +8,10 @@ use App\Controllers\CustomerController;
 
 class CustomerDashboardController extends CustomerController
 {
+    /**
+     * CLI Part
+     */
+
     private $customer;
 
     private const SHOW_TRANSACTIONS = 1;
@@ -36,19 +40,6 @@ class CustomerDashboardController extends CustomerController
     public static function getModelName(): string
     {
         return 'customer-transaction';
-    }
-
-    /**
-     * pages
-     */
-
-    public static function dashboard(){
-        $balance = static::getBalance();
-        $data = static::getTransactionData();
-        print_r($data);
-
-        return view('customer/dashboard', ['balance'=>$balance]);
-        
     }
 
     public function run()
@@ -312,5 +303,17 @@ class CustomerDashboardController extends CustomerController
     public function saveCustomerTransaction(array $transactionData): void
     {
         $this->storage->save(CustomerDashboardController::getModelName(), $transactionData);
+    }
+
+    /**
+     * Web Part
+     */
+    // dashboard page
+     public static function dashboard(){
+        $balance = static::getBalance(); // get current balance
+        $data = static::getTransactionData();
+
+        return view('customer/dashboard', ['balance'=>$balance, 'data'=>$data]);
+        
     }
 }
